@@ -2,18 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef, useState } from "react";
 import { Animated, TouchableHighlight } from "react-native";
 import { StyleSheet, Text, View } from "react-native";
-import {
-  ActivityIndicator,
-  Button,
-  CheckBox,
-  FlatList,
-  ImageBackground,
-  ScrollView,
-  SectionList,
-  Switch,
-  TextInput,
-} from "react-native-web";
-import logo from "./assets/icon.png";
+import { Button, FlatList, TextInput } from "react-native-web";
 
 export default function App() {
   let [todos, setTodos] = useState([
@@ -38,17 +27,51 @@ export default function App() {
     { id: 19, title: "Prepare presentation", isDone: true },
     { id: 20, title: "Organize the files", isDone: false },
   ]);
+
   const [newTodoTitle, setNewTodoTitle] = useState("");
-  const deleteTodo = (id) => setTodos(todos.filter((todo) => todo.id !== id));
-  const renderItem = ({ item }) => (
-    <View>
-      <View>
-        <Text>{item.id}</Text>
-        <Text>{item.title}</Text>
-        <Button title="Удалить" onPress={() => deleteTodo(item.id)}></Button>
-      </View>
-    </View>
-  );
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const deleteTodo = (id) => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setTodos(todos.filter((todo) => todo.id !== id));
+      fadeAnim.setValue(1);
+    });
+  };
+
+  const startShake = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, {
+        toValue: 10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: -10,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnim, {
+        toValue: 0,
+        duration: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const addTodoAnim = () => {
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
   const addTodo = () => {
     if (newTodoTitle.trim()) {
       const newTodo = {
@@ -58,16 +81,34 @@ export default function App() {
       };
       setTodos([...todos, newTodo]);
       setNewTodoTitle("");
+      addTodoAnim();
+    } else {
+      startShake();
     }
   };
+
+  const renderItem = ({ item }) => (
+    <Animated.View style={{ opacity: fadeAnim }}>
+      <View>
+        <Text>{item.id}</Text>
+        <Text>{item.title}</Text>
+        <Button title="Удалить" onPress={() => deleteTodo(item.id)}></Button>
+      </View>
+    </Animated.View>
+  );
+
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Add a new task..."
-        value={newTodoTitle}
-        onChangeText={setNewTodoTitle}
-      />
+      <Animated.View
+        style={{ transform: [{ translateX: shakeAnim }], width: 200 }}
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="Add a new task..."
+          value={newTodoTitle}
+          onChangeText={setNewTodoTitle}
+        />
+      </Animated.View>
       <Button title="Add Todo" onPress={addTodo} />
 
       <FlatList
